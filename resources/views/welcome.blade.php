@@ -5,7 +5,7 @@
     <div class="row align-items-center">
         <div class="col-md-6">
             <h1 class="display-3 fw-bold">Enroll now!</h1>
-            <p class="lead mb-4" style="color:#f0d9da;">Apply, upload documents, and track your enrollment status online — all in one secure portal.</p>
+            <p class="lead mb-4" style="color:#f0d9da;">Apply, upload documents, and track your enrollment status — all in one secure portal.</p>
             <a href="/login" class="btn btn-light btn-lg px-4 fw-semibold text-maroon">Enroll now</a>
         </div>
         <div class="col-md-6">
