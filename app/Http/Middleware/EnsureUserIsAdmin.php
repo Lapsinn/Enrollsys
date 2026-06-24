@@ -7,16 +7,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureUserIsStudent
+class EnsureUserIsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if the user is logged in AND their role is 'student'
-        if (Auth::check() && Auth::user()->role === 'student') {
+        // Check if the user is logged in AND their role is 'admin'
+        if (Auth::check() && Auth::user()->role === 'admin') {
             return $next($request); // Let them pass
         }
 
         // If they fail the check, kick them back to the login page
-        return redirect('/login')->with('error', 'You do not have student access.');
+        return redirect('/login')->with('error', 'You do not have admin access.');
     }
 }
