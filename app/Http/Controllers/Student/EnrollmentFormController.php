@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Models\EnrollmentForm; 
+
 
 class EnrollmentFormController extends Controller
 {
@@ -50,5 +52,11 @@ class EnrollmentFormController extends Controller
         return redirect()
             ->route('student.forms.show')
             ->with('status', 'Draft saved.');
+    }
+
+    // app/Http/Controllers/Student/EnrollmentStatusController.php
+    public function index() {
+    $enrollment = EnrollmentForm::where('user_id', auth()->id())->first();
+    return view('enrollment-status', compact('enrollment'));
     }
 }

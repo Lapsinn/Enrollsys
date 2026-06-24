@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Models\EnrollmentForm; 
+
 
 class ApprovalController extends Controller
 {
@@ -38,35 +40,44 @@ class ApprovalController extends Controller
 
     public function approve(User $student): RedirectResponse
     {
-        // $student->application->update(['status' => 'approved']);
+    // Ensure you are updating the correct related model
+    $student->enrollmentForm->update(['status' => 'approved']);
 
-        return redirect()
-            ->route('admin.approval.index')
-            ->with('status', "{$student->name}'s application was approved.");
+    return redirect()
+        ->route('admin.approval.index')
+        ->with('status', "{$student->name}'s application was approved.");
     }
 
     public function reject(User $student): RedirectResponse
     {
-        // $student->application->update(['status' => 'rejected']);
+    $student->enrollmentForm->update(['status' => 'rejected']);
 
-        return redirect()
-            ->route('admin.approval.index')
-            ->with('status', "{$student->name}'s application was rejected.");
+    return redirect()
+        ->route('admin.approval.index')
+        ->with('status', "{$student->name}'s application was rejected.");
     }
 
     public function storeNote(Request $request, User $student): RedirectResponse
     {
-        $validated = $request->validate([
-            'note' => ['required', 'string', 'max:2000'],
-        ]);
+    $validated = $request->validate([
+        'note' => ['required', 'string', 'max:2000'],
+    ]);
 
-        // $student->notes()->create([
-        //     'author_id' => auth()->id(),
-        //     'body' => $validated['note'],
-        // ]);
+    $student->notes()->create([
+        'author_id' => auth()->id(),
+        'body' => $validated['note'],
+    ]);
 
-        return redirect()
-            ->route('admin.approval.index')
-            ->with('status', "Note added for {$student->name}.");
+    return redirect()
+        ->route('admin.approval.index')
+        ->with('status', "Note added for {$student->name}.");
     }
+
+    // app/Http/Controllers/Admin/ApprovalController.php
+    public function update(Request $request, $id) {
+    $form = EnrollmentForm::findOrFail($id);
+    $form->update(['status' => $request->status]); // status: approved/rejected
+    return back()->with('success', 'Status updated successfully.');
+    }
+
 }

@@ -61,10 +61,12 @@ class EnrollmentFormController extends Controller
         ]);
 
         // Persist to your EnrollmentForm model here, e.g.:
-        // $student->enrollmentForm()->update($validated);
+        $student->enrollmentForm()->update($validated);
 
         return redirect()
             ->route('admin.forms.show', $student)
             ->with('status', 'Enrollment form updated successfully.');
     }
+
+    
 }
