@@ -9,8 +9,11 @@ class BlockAssignmentController extends Controller
 {
     public function show(): View
     {
-        // $block = auth()->user()->blockAssignment;
+        $user = auth()->user();
+        $user->load(['enrollmentForm', 'enrollment.block']);
 
-        return view('block-assignment');
+        return view('block-assignment', [
+            'student' => $user,
+        ]);
     }
 }

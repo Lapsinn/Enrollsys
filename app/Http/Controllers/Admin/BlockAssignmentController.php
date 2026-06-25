@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Block;
+use App\Models\Enrollment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,20 +15,20 @@ class BlockAssignmentController extends Controller
     public function index(Request $request): View
     {
         $query = $request->input('q');
-        $program = $request->input('program');
-        $yearLevel = $request->input('year_level');
 
         $students = User::query()
             ->where('role', 'student')
+            ->with(['enrollmentForm', 'enrollment.block'])
             ->when($query, fn ($b) => $b->where('name', 'like', "%{$query}%"))
-            // ->when($program, fn ($b) => $b->where('program', $program))
-            // ->when($yearLevel, fn ($b) => $b->where('year_level', $yearLevel))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
+        $blocks = Block::all();
+
         return view('block-assignment', [
             'students' => $students,
+            'blocks' => $blocks,
             'query' => $query,
         ]);
     }
@@ -34,14 +36,23 @@ class BlockAssignmentController extends Controller
     public function update(Request $request, User $student): RedirectResponse
     {
         $validated = $request->validate([
-            'block' => ['required', 'string', 'in:Block A,Block B,Block C'],
+            'block_id' => ['nullable', 'exists:blocks,id'],
         ]);
 
-        // $student->blockAssignment()->update(['block' => $validated['block']]);
+        $enrollment = Enrollment::updateOrCreate(
+            ['email' => $student->email],
+            [
+                'student_name' => $student->name,
+                'course' => $student->enrollmentForm?->program ?? 'bscs',
+                'block_id' => $validated['block_id'] ?: null,
+            ]
+        );
+
+        $blockName = $validated['block_id'] ? Block::find($validated['block_id'])->name : 'Unassigned';
 
         return redirect()
             ->route('admin.block-assignment.index')
-            ->with('status', "{$student->name} assigned to {$validated['block']}.");
+            ->with('status', "{$student->name} assigned to {$blockName}.");
     }
 
     public function bulkAssign(Request $request): RedirectResponse
@@ -49,11 +60,21 @@ class BlockAssignmentController extends Controller
         $validated = $request->validate([
             'student_ids' => ['required', 'array'],
             'student_ids.*' => ['exists:users,id'],
-            'block' => ['required', 'string', 'in:Block A,Block B,Block C'],
+            'block_id' => ['nullable', 'exists:blocks,id'],
         ]);
 
-        // User::whereIn('id', $validated['student_ids'])
-        //     ->each(fn ($student) => $student->blockAssignment()->update(['block' => $validated['block']]));
+        $students = User::whereIn('id', $validated['student_ids'])->get();
+
+        foreach ($students as $student) {
+            Enrollment::updateOrCreate(
+                ['email' => $student->email],
+                [
+                    'student_name' => $student->name,
+                    'course' => $student->enrollmentForm?->program ?? 'bscs',
+                    'block_id' => $validated['block_id'] ?: null,
+                ]
+            );
+        }
 
         return redirect()
             ->route('admin.block-assignment.index')
