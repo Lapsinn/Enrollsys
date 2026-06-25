@@ -11,23 +11,17 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        then: function () {
+            require __DIR__.'/../routes/preview.php';
+        },
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-    )
-    ->withRouting(
-    web: __DIR__.'/../routes/web.php',
-    then: function () {
-        require __DIR__.'/../routes/preview.php';
-    },
-    commands: __DIR__.'/../routes/console.php',
-    health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'student' => EnsureUserIsStudent::class,
             'admin' => EnsureUserIsAdmin::class,
         ]);
-
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
