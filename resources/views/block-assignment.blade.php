@@ -14,25 +14,55 @@
     @endif
 
     @if(auth()->user()->role === 'admin')
-    {{-- Search & Filters form --}}
-    <form method="GET" action="{{ route('admin.block-assignment.index') }}" class="row mb-4 g-2" id="bulkAssignForm">
-        <div class="col-md-5">
-            <input type="text" name="q" class="form-control" placeholder="Search student name" value="{{ $query ?? '' }}">
+    {{-- Search & Filters Form --}}
+    <form method="GET" action="{{ route('admin.block-assignment.index') }}" class="row mb-3 g-2 align-items-center">
+        <div class="col-md-4">
+            <input type="text" name="q" class="form-control" placeholder="Search student name or ID" value="{{ request('q') }}">
         </div>
-        <div class="col-md-3">
-            {{-- Bulk action block selector --}}
-            <select name="bulk_block_id" class="form-select" id="bulkBlockSelect">
-                <option value="" selected disabled>Select Block for Bulk Assign</option>
-                <option value="">Unassign Block</option>
-                @foreach($blocks as $b)
-                    <option value="{{ $b->id }}">{{ $b->name }}</option>
-                @endforeach
+        <div class="col-md-2">
+            <select name="program" class="form-select">
+                <option value="">All Programs</option>
+                <option value="bscs" {{ request('program') == 'bscs' ? 'selected' : '' }}>BSCS</option>
+                <option value="bsit" {{ request('program') == 'bsit' ? 'selected' : '' }}>BSIT</option>
             </select>
         </div>
         <div class="col-md-2">
-            <button type="button" class="btn btn-maroon w-100" onclick="submitBulkAssign()">Bulk Assign</button>
+            <select name="block_id" class="form-select">
+                <option value="">All Blocks</option>
+                <option value="unassigned" {{ request('block_id') == 'unassigned' ? 'selected' : '' }}>Unassigned</option>
+                @foreach($blocks as $b)
+                    <option value="{{ $b->id }}" {{ request('block_id') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-maroon">Filter</button>
+            @if(request('q') || request('program') || request('block_id'))
+                <a href="{{ route('admin.block-assignment.index') }}" class="btn btn-link text-muted">Clear</a>
+            @endif
         </div>
     </form>
+
+    {{-- Bulk Action Panel --}}
+    <div class="card p-3 mb-4 bg-light border-0 shadow-sm">
+        <div class="row align-items-center g-2">
+            <div class="col-md-auto">
+                <span class="fw-bold text-dark me-2">Bulk Action:</span>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <select class="form-select" id="bulkBlockSelect">
+                    <option value="" selected disabled>Select Block for Selected Students</option>
+                    <option value="">Unassign Block</option>
+                    @foreach($blocks as $b)
+                        <option value="{{ $b->id }}">{{ $b->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-maroon w-100" onclick="submitBulkAssign()">Bulk Assign</button>
+            </div>
+        </div>
+    </div>
 
     {{-- Bulk assign support fields --}}
     <form id="realBulkForm" method="POST" action="{{ route('admin.block-assignment.bulk') }}" class="d-none">

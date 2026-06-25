@@ -26,8 +26,16 @@ class ApprovalController extends Controller
                         ->orWhere('student_number', 'like', "%{$query}%");
                 });
             })
-            // ->when($program, fn ($b) => $b->where('program', $program))
-            // ->when($status, fn ($b) => $b->where('application_status', $status))
+            ->when($program, function ($builder) use ($program) {
+                $builder->whereHas('enrollmentForm', function ($inner) use ($program) {
+                    $inner->where('program', $program);
+                });
+            })
+            ->when($status, function ($builder) use ($status) {
+                $builder->whereHas('enrollmentForm', function ($inner) use ($status) {
+                    $inner->where('status', $status);
+                });
+            })
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
@@ -35,6 +43,8 @@ class ApprovalController extends Controller
         return view('approval', [
             'applications' => $applications,
             'query' => $query,
+            'program' => $program,
+            'status' => $status,
         ]);
     }
 
@@ -66,20 +76,23 @@ class ApprovalController extends Controller
         ->with('status', "{$student->name}'s application was rejected.");
     }
 
-    public function storeNote(Request $request, User $student): RedirectResponse
+    public function storeNote(Request $request): RedirectResponse
     {
-    $validated = $request->validate([
-        'note' => ['required', 'string', 'max:2000'],
-    ]);
+        $validated = $request->validate([
+            'student_id' => ['required', 'exists:users,id'],
+            'note' => ['required', 'string', 'max:2000'],
+        ]);
 
-    $student->notes()->create([
-        'author_id' => auth()->id(),
-        'body' => $validated['note'],
-    ]);
+        $student = User::findOrFail($validated['student_id']);
 
-    return redirect()
-        ->route('admin.approval.index')
-        ->with('status', "Note added for {$student->name}.");
+        $student->notes()->create([
+            'author_id' => auth()->id(),
+            'body' => $validated['note'],
+        ]);
+
+        return redirect()
+            ->route('admin.approval.index')
+            ->with('status', "Note added for {$student->name}.");
     }
 
     // app/Http/Controllers/Admin/ApprovalController.php

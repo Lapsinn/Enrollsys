@@ -15,11 +15,37 @@ class BlockAssignmentController extends Controller
     public function index(Request $request): View
     {
         $query = $request->input('q');
+        $blockId = $request->input('block_id');
+        $program = $request->input('program');
 
         $students = User::query()
             ->where('role', 'student')
             ->with(['enrollmentForm', 'enrollment.block'])
-            ->when($query, fn ($b) => $b->where('name', 'like', "%{$query}%"))
+            ->when($query, function ($builder) use ($query) {
+                $builder->where(function ($inner) use ($query) {
+                    $inner->where('name', 'like', "%{$query}%")
+                        ->orWhere('student_number', 'like', "%{$query}%");
+                });
+            })
+            ->when($blockId, function ($builder) use ($blockId) {
+                if ($blockId === 'unassigned') {
+                    $builder->where(function ($inner) {
+                        $inner->whereDoesntHave('enrollment')
+                            ->orWhereHas('enrollment', function ($q) {
+                                $q->whereNull('block_id');
+                            });
+                    });
+                } else {
+                    $builder->whereHas('enrollment', function ($inner) use ($blockId) {
+                        $inner->where('block_id', $blockId);
+                    });
+                }
+            })
+            ->when($program, function ($builder) use ($program) {
+                $builder->whereHas('enrollmentForm', function ($inner) use ($program) {
+                    $inner->where('program', $program);
+                });
+            })
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
@@ -30,6 +56,8 @@ class BlockAssignmentController extends Controller
             'students' => $students,
             'blocks' => $blocks,
             'query' => $query,
+            'blockId' => $blockId,
+            'program' => $program,
         ]);
     }
 

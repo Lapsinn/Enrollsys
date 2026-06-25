@@ -23,6 +23,16 @@ class RecordsController extends Controller
                         ->orWhere('student_number', 'like', "%{$query}%");
                 });
             })
+            ->when($semester, function ($builder) use ($semester) {
+                $builder->whereHas('enrollmentForm', function ($inner) use ($semester) {
+                    $inner->where('semester', $semester);
+                });
+            })
+            ->when($academicYear, function ($builder) use ($academicYear) {
+                $builder->whereHas('enrollmentForm', function ($inner) use ($academicYear) {
+                    $inner->where('year_level', $academicYear);
+                });
+            })
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();

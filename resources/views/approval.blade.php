@@ -2,7 +2,7 @@
 
 @section('content')
 @if(auth()->user()->role === 'admin')
-<div class="container mt-5" x-data="{ noteModalOpen: false, noteText: '', noteTargetName: '', noteActionUrl: '' }">
+<div class="container mt-5" x-data="{ noteModalOpen: false, noteText: '', noteTargetName: '', closeModal() { this.noteText = ''; this.noteModalOpen = false; } }">
     <h2 class="page-title">Approval Queue</h2>
 
     {{-- Flash status message --}}
@@ -14,7 +14,7 @@
     @endif
 
     {{-- Search form --}}
-    <form method="GET" action="{{ route('admin.approval.index') }}" class="row mb-4 g-2">
+    <form method="GET" action="{{ route('admin.approval.index') }}" class="row mb-4 g-2 align-items-center">
         <div class="col-md-4">
             <input type="text" 
                    name="q" 
@@ -22,9 +22,24 @@
                    placeholder="Search by student name or ID" 
                    value="{{ request('q') }}">
         </div>
+        <div class="col-md-2">
+            <select name="program" class="form-select">
+                <option value="">All Programs</option>
+                <option value="bscs" {{ request('program') == 'bscs' ? 'selected' : '' }}>BSCS</option>
+                <option value="bsit" {{ request('program') == 'bsit' ? 'selected' : '' }}>BSIT</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
+            </select>
+        </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-outline-secondary">Search</button>
-            @if(request('q'))
+            <button type="submit" class="btn btn-maroon">Filter</button>
+            @if(request('q') || request('program') || request('status'))
                 <a href="{{ route('admin.approval.index') }}" class="btn btn-link text-muted">Clear</a>
             @endif
         </div>
@@ -146,7 +161,7 @@
                         @endif
 
                         <button class="btn btn-outline-maroon ms-auto" 
-                                @click="noteModalOpen = true; noteTargetName = '{{ $selectedStudent->name }}'; noteActionUrl = '{{ route('admin.approval.note', $selectedStudent) }}'">
+                                @click="document.getElementById('noteStudentSelect').value = '{{ $selectedStudent->id }}'; noteModalOpen = true;">
                             <i class="bi bi-pencil-square"></i> Add Note
                         </button>
                     </div>
@@ -169,6 +184,7 @@
                         @endforelse
                     </div>
                 </div>
+
             @else
                 <div class="card shadow-sm p-4 text-center text-muted my-5">
                     <i class="bi bi-person-fill-exclamation fs-1 text-maroon mb-2"></i>
@@ -179,20 +195,34 @@
     </div>
 
     <!-- Add Note Modal -->
-    <div x-show="noteModalOpen" x-cloak class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background:rgba(0,0,0,.5); z-index:1050;" @click.self="noteModalOpen = false">
+    <div x-show="noteModalOpen" x-cloak class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background:rgba(0,0,0,.5); z-index:1050;" @click.self="closeModal()">
         <div class="card shadow-lg p-4" style="width:480px;">
-            <h5 class="text-maroon mb-1">Add Note</h5>
-            <p class="text-muted small mb-3">For <span x-text="noteTargetName" class="fw-semibold"></span></p>
-            <form method="POST" :action="noteActionUrl">
+            <h5 class="text-maroon mb-3">Add Note</h5>
+            <form id="noteForm" method="POST" action="{{ route('admin.approval.note') }}">
                 @csrf
-                <textarea class="form-control mb-3" name="note" rows="4" placeholder="Write a note or instructions for this student..." required></textarea>
+                <div class="mb-3">
+                    <label for="noteStudentSelect" class="form-label text-muted small fw-semibold">For Student</label>
+                    <select id="noteStudentSelect" name="student_id" class="form-select">
+                        @foreach($applications as $app)
+                            <option value="{{ $app->id }}" {{ $selectedStudent && $selectedStudent->id == $app->id ? 'selected' : '' }}>
+                                {{ $app->name }} ({{ $app->student_number ?? 'No Student No.' }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="noteText" class="form-label text-muted small fw-semibold">Note / Feedback</label>
+                    <textarea id="noteText" x-model="noteText" class="form-control" name="note" rows="4" placeholder="Write a note or instructions for this student..." required></textarea>
+                </div>
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @click="noteModalOpen = false">Cancel</button>
+                    <button type="button" class="btn btn-secondary" @click="closeModal()">Cancel</button>
                     <button type="submit" class="btn btn-maroon">Save Note</button>
                 </div>
             </form>
         </div>
     </div>
+
+
 </div>
 @else
 {{-- Student View --}}

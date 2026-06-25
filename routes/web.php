@@ -74,7 +74,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/approval', [AdminApprovalController::class, 'index'])->name('admin.approval.index');
     Route::post('/approval/{student}/approve', [AdminApprovalController::class, 'approve'])->name('admin.approval.approve');
     Route::post('/approval/{student}/reject', [AdminApprovalController::class, 'reject'])->name('admin.approval.reject');
-    Route::post('/approval/{student}/note', [AdminApprovalController::class, 'storeNote'])->name('admin.approval.note');
+    Route::post('/approval/note', [AdminApprovalController::class, 'storeNote'])->name('admin.approval.note');
 
     // Block Assignment: search, save, bulk assign
     Route::get('/block', [AdminBlockAssignmentController::class, 'index'])->name('admin.block-assignment.index');

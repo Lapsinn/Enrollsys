@@ -6,13 +6,29 @@
 
     @if(auth()->user()->role === 'admin')
     {{-- ADMIN VIEW --}}
-    <form method="GET" action="{{ route('admin.records.index') }}" class="row mb-4 g-2">
-        <div class="col-md-5">
+    <form method="GET" action="{{ route('admin.records.index') }}" class="row mb-4 g-2 align-items-center">
+        <div class="col-md-4">
             <input type="text" name="q" class="form-control" placeholder="Search student name/ID" value="{{ request('q') }}">
         </div>
+        <div class="col-md-2">
+            <select name="semester" class="form-select">
+                <option value="">All Semesters</option>
+                <option value="1" {{ request('semester') == '1' ? 'selected' : '' }}>1st Semester</option>
+                <option value="2" {{ request('semester') == '2' ? 'selected' : '' }}>2nd Semester</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="ay" class="form-select">
+                <option value="">All Years</option>
+                <option value="1" {{ request('ay') == '1' ? 'selected' : '' }}>1st Year</option>
+                <option value="2" {{ request('ay') == '2' ? 'selected' : '' }}>2nd Year</option>
+                <option value="3" {{ request('ay') == '3' ? 'selected' : '' }}>3rd Year</option>
+                <option value="4" {{ request('ay') == '4' ? 'selected' : '' }}>4th Year</option>
+            </select>
+        </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-outline-secondary">Search</button>
-            @if(request('q'))
+            <button type="submit" class="btn btn-maroon">Filter</button>
+            @if(request('q') || request('semester') || request('ay'))
                 <a href="{{ route('admin.records.index') }}" class="btn btn-link text-muted">Clear</a>
             @endif
         </div>

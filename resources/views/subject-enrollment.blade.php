@@ -14,13 +14,38 @@
 
     @if(auth()->user()->role === 'admin')
     {{-- ADMIN VIEW --}}
-    <form method="GET" action="{{ route('admin.subjects.index') }}" class="row mb-4 g-2">
-        <div class="col-md-5">
-            <input type="text" name="q" class="form-control" placeholder="Search by student name or ID" value="{{ request('q') }}">
+    <form method="GET" action="{{ route('admin.subjects.index') }}" class="row mb-4 g-2 align-items-center">
+        <div class="col-md-3">
+            <input type="text" name="q" class="form-control" placeholder="Search student name/ID" value="{{ request('q') }}">
+        </div>
+        <div class="col-md-2">
+            <select name="program" class="form-select">
+                <option value="">All Programs</option>
+                <option value="bscs" {{ request('program') == 'bscs' ? 'selected' : '' }}>BSCS</option>
+                <option value="bsit" {{ request('program') == 'bsit' ? 'selected' : '' }}>BSIT</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="block_id" class="form-select">
+                <option value="">All Blocks</option>
+                <option value="unassigned" {{ request('block_id') == 'unassigned' ? 'selected' : '' }}>Unassigned</option>
+                @foreach($blocks as $b)
+                    <option value="{{ $b->id }}" {{ request('block_id') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="ay" class="form-select">
+                <option value="">All Years</option>
+                <option value="1" {{ request('ay') == '1' ? 'selected' : '' }}>1st Year</option>
+                <option value="2" {{ request('ay') == '2' ? 'selected' : '' }}>2nd Year</option>
+                <option value="3" {{ request('ay') == '3' ? 'selected' : '' }}>3rd Year</option>
+                <option value="4" {{ request('ay') == '4' ? 'selected' : '' }}>4th Year</option>
+            </select>
         </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-outline-secondary">Search</button>
-            @if(request('q'))
+            <button type="submit" class="btn btn-maroon">Filter</button>
+            @if(request('q') || request('program') || request('block_id') || request('ay'))
                 <a href="{{ route('admin.subjects.index') }}" class="btn btn-link text-muted">Clear</a>
             @endif
         </div>
