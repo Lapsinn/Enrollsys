@@ -1,302 +1,325 @@
 @extends('layouts.app')
 
 @section('content')
+
+{{-- ============================================================
+     ADMIN VIEW — list of students + detail/edit panel
+     Controller passes: $students (paginated), $query (string)
+     ============================================================ --}}
 @if(auth()->user()->role === 'admin')
-<div class="container mt-5" x-data="{
-    query: '',
-    selected: null,
-    editing: false,
-    students: [
-        { id: '2026-00123', name: 'Juan Dela Cruz', program: 'BS Information Technology', year_level: '2', semester: '1', sex: 'male', applicant_type: 'new', birthdate: '2006-03-14', address: 'Blk 4 Lot 12, Sampaguita St., Quezon City', email: 'juan.delacruz@email.com', contact_number: '0917-123-4567', emergency_contact: 'Rosa Dela Cruz / 0917-765-4321', last_school: 'Quezon City Science HS' },
-        { id: '2026-00124', name: 'Maria Santos', program: 'BS Computer Science', year_level: '3', semester: '1', sex: 'female', applicant_type: 'old', birthdate: '2005-07-22', address: '123 Mabini St., Manila', email: 'maria.santos@email.com', contact_number: '0918-234-5678', emergency_contact: 'Pedro Santos / 0918-876-5432', last_school: 'Manila Science HS' },
-        { id: '2026-00125', name: 'Mark Reyes', program: 'BS Information Technology', year_level: '1', semester: '1', sex: 'male', applicant_type: 'transferee', birthdate: '2007-01-09', address: '45 Rizal Ave., Pasig City', email: 'mark.reyes@email.com', contact_number: '0919-345-6789', emergency_contact: 'Liza Reyes / 0919-987-6543', last_school: 'Pasig National HS' },
-    ],
-    get filtered() {
-        if (!this.query.trim()) return this.students;
-        const q = this.query.toLowerCase();
-        return this.students.filter(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
-    },
-    open(student) { this.selected = student; this.editing = false; },
-    back() { this.selected = null; this.editing = false; }
-}">
-    <h2 class="page-title">Enrollment Form</h2>
 
-    <!-- LIST VIEW -->
-    <div x-show="!selected">
-        <div class="row mb-4">
-            <div class="col-md-5">
-                <input type="text" class="form-control" placeholder="Search by student name or ID" x-model="query">
-            </div>
+<div class="container mt-5">
+    <h2 class="page-title">Enrollment Forms</h2>
+
+    {{-- Flash status message --}}
+    @if(session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+    @endif
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
+    {{-- Search --}}
+    <form method="GET" action="{{ route('admin.forms.index') }}" class="row mb-4">
+        <div class="col-md-5">
+            <input type="text"
+                   name="q"
+                   class="form-control"
+                   placeholder="Search by student name or ID"
+                   value="{{ $query ?? '' }}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-secondary">Search</button>
+            @if($query)
+                <a href="{{ route('admin.forms.index') }}" class="btn btn-link text-muted">Clear</a>
+            @endif
+        </div>
+    </form>
+
+    {{-- Student table --}}
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="py-3 px-4">Student</th>
+                        <th class="py-3">Student No.</th>
+                        <th class="py-3">Program</th>
+                        <th class="py-3">Year Level</th>
+                        <th class="py-3">Status</th>
+                        <th class="py-3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($students as $student)
+                        @php $form = $student->enrollmentForm; @endphp
                         <tr>
-                            <th class="py-3 px-4">Student</th>
-                            <th class="py-3">Student No.</th>
-                            <th class="py-3">Program</th>
-                            <th class="py-3">Year Level</th>
-                            <th class="py-3"></th>
+                            <td class="px-4">
+                                <a href="{{ route('admin.forms.show', $student) }}"
+                                   class="text-maroon fw-semibold text-decoration-none">
+                                    {{ $student->name }}
+                                </a>
+                            </td>
+                            <td>{{ $student->student_number ?? '—' }}</td>
+                            <td>{{ $form?->program ?? '—' }}</td>
+                            <td>
+                                @if($form?->year_level)
+                                    {{ $form->year_level }}{{ match((int)$form->year_level) { 1 => 'st', 2 => 'nd', 3 => 'rd', default => 'th' } }} Year
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td>
+                                @if($form)
+                                    <span class="badge bg-{{ match($form->status) {
+                                        'approved' => 'success',
+                                        'rejected' => 'danger',
+                                        'pending'  => 'warning text-dark',
+                                        default    => 'secondary',
+                                    } }}">
+                                        {{ ucfirst($form->status) }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary">No Form</span>
+                                @endif
+                            </td>
+                            <td>
+                                <a href="{{ route('admin.forms.show', $student) }}"
+                                   class="btn btn-sm btn-outline-maroon">View</a>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <template x-for="s in filtered" :key="s.id">
-                            <tr>
-                                <td class="px-4">
-                                    <a href="#" class="text-maroon fw-semibold text-decoration-none" @click.prevent="open(s)" x-text="s.name"></a>
-                                </td>
-                                <td x-text="s.id"></td>
-                                <td x-text="s.program"></td>
-                                <td x-text="s.year_level + (s.year_level == '1' ? 'st' : s.year_level == '2' ? 'nd' : s.year_level == '3' ? 'rd' : 'th') + ' Year'"></td>
-                                <td><button class="btn btn-sm btn-outline-maroon" @click="open(s)">View</button></td>
-                            </tr>
-                        </template>
-                        <tr x-show="filtered.length === 0">
-                            <td colspan="5" class="text-center text-muted py-4">No matching students found.</td>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No matching students found.</td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- DETAIL / EDIT VIEW -->
-    <div x-show="selected" x-cloak>
-        <template x-if="selected">
-            <div>
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <button class="btn btn-link text-maroon ps-0" @click="back()"><i class="bi bi-arrow-left"></i> Back to list</button>
-                    <div>
-                        <button class="btn btn-outline-maroon" x-show="!editing" @click="editing = true">
-                            <i class="bi bi-pencil-square"></i> Edit
-                        </button>
-                        <button class="btn btn-secondary" x-show="editing" @click="editing = false">Cancel</button>
-                        <button class="btn btn-maroon" x-show="editing" @click="editing = false">Save Changes</button>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="text-maroon mb-1" x-text="selected.name"></h5>
-                        <p class="text-muted small mb-4">Student No. <span x-text="selected.id"></span></p>
-
-                        <fieldset :disabled="!editing">
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Last Name</label>
-                                    <input type="text" name="last_name" class="form-control" x-model="selected.name">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Birthdate</label>
-                                    <input type="date" name="birthdate" class="form-control" x-model="selected.birthdate">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Sex</label>
-                                    <select class="form-select" name="sex" x-model="selected.sex">
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Applicant Type</label>
-                                    <select class="form-select" name="applicant_type" x-model="selected.applicant_type">
-                                        <option value="new">New</option>
-                                        <option value="old">Old</option>
-                                        <option value="transferee">Transferee</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Program</label>
-                                    <select class="form-select" name="program" x-model="selected.program">
-                                        <option value="BS Information Technology">BS Information Technology</option>
-                                        <option value="BS Computer Science">BS Computer Science</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Year Level</label>
-                                    <select class="form-select" name="year_level" x-model="selected.year_level">
-                                        <option value="1">1st Year</option>
-                                        <option value="2">2nd Year</option>
-                                        <option value="3">3rd Year</option>
-                                        <option value="4">4th Year</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Semester</label>
-                                    <select class="form-select" name="semester" x-model="selected.semester">
-                                        <option value="1">1st Sem</option>
-                                        <option value="2">2nd Sem</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-12">
-                                    <label class="form-label">Home Address</label>
-                                    <input type="text" name="address" class="form-control" x-model="selected.address">
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" name="email" class="form-control" x-model="selected.email">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Contact Number</label>
-                                    <input type="text" name="contact_number" class="form-control" x-model="selected.contact_number">
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Emergency Contact</label>
-                                    <input type="text" name="emergency_contact" class="form-control" x-model="selected.emergency_contact">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Last School Attended</label>
-                                    <input type="text" name="last_school" class="form-control" x-model="selected.last_school">
-                                </div>
-                            </div>
-                        </fieldset>
-
-                        <div class="mb-0">
-                            <label class="form-label">Submitted Documents</label>
-                            <div class="border rounded p-3 bg-light">
-                                <a href="#" class="text-maroon"><i class="bi bi-file-earmark-pdf"></i> Transcript_of_Records.pdf</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
+    {{-- Pagination --}}
+    <div class="mt-3">
+        {{ $students->links() }}
     </div>
 </div>
+
+{{-- ============================================================
+     STUDENT VIEW — fill / re-view own enrollment form
+     Controller passes: $form (EnrollmentForm|null)
+     ============================================================ --}}
 @else
+
 <div class="container mt-5">
     <h2 class="page-title">Student Enrollment Form</h2>
 
+    {{-- Flash messages --}}
+    @if(session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    {{-- Submitted / approved notice --}}
+    @if($form && in_array($form->status, ['pending', 'approved']))
+        <div class="alert alert-info">
+            Your enrollment form has been submitted and is currently
+            <strong>{{ ucfirst($form->status) }}</strong>.
+            @if($form->status === 'approved')
+                No further edits are allowed.
+            @else
+                You may update it below until it is reviewed.
+            @endif
+        </div>
+    @endif
+
+    @php $readonly = $form && $form->status === 'approved'; @endphp
+
     <div class="card shadow-sm">
         <div class="card-body">
-            <form method="POST" action="/enroll">
+            <form method="POST" action="{{ route('student.forms.store') }}"
+                  enctype="multipart/form-data">
                 @csrf
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Last Name</label>
-                        <input type="text" name="last_name" class="form-control" placeholder="Enter last name" value="{{ old('last_name') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">First Name</label>
-                        <input type="text" name="first_name" class="form-control" placeholder="Enter first name" value="{{ old('first_name') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Middle Name</label>
-                        <input type="text" name="middle_name" class="form-control" placeholder="Enter middle name" value="{{ old('middle_name') }}">
-                    </div>
-                </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Birthdate</label>
-                        <input type="date" name="birthdate" class="form-control" value="{{ old('birthdate') }}">
+                {{-- Validation errors --}}
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Sex</label>
-                        <select class="form-select" name="sex">
-                            <option selected disabled>Select...</option>
-                            <option value="male" {{ old('sex') == 'male' ? 'selected' : '' }}>Male</option>
-                            <option value="female" {{ old('sex') == 'female' ? 'selected' : '' }}>Female</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Applicant Type</label>
-                        <select class="form-select" name="applicant_type">
-                            <option selected disabled>Select...</option>
-                            <option value="new" {{ old('applicant_type') == 'new' ? 'selected' : '' }}>New</option>
-                            <option value="old" {{ old('applicant_type') == 'old' ? 'selected' : '' }}>Old</option>
-                            <option value="transferee" {{ old('applicant_type') == 'transferee' ? 'selected' : '' }}>Transferee</option>
-                        </select>
-                    </div>
-                </div>
+                @endif
 
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Program</label>
-                        <select class="form-select" name="program">
-                            <option selected disabled>Select...</option>
-                            <option value="bsit" {{ old('program') == 'bsit' ? 'selected' : '' }}>BS Information Technology</option>
-                            <option value="bscs" {{ old('program') == 'bscs' ? 'selected' : '' }}>BS Computer Science</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Year Level</label>
-                        <select class="form-select" name="year_level">
-                            <option selected disabled>Select...</option>
-                            <option value="1" {{ old('year_level') == '1' ? 'selected' : '' }}>1st Year</option>
-                            <option value="2" {{ old('year_level') == '2' ? 'selected' : '' }}>2nd Year</option>
-                            <option value="3" {{ old('year_level') == '3' ? 'selected' : '' }}>3rd Year</option>
-                            <option value="4" {{ old('year_level') == '4' ? 'selected' : '' }}>4th Year</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Semester</label>
-                        <select class="form-select" name="semester">
-                            <option selected disabled>Select...</option>
-                            <option value="1" {{ old('semester') == '1' ? 'selected' : '' }}>1st Semester</option>
-                            <option value="2" {{ old('semester') == '2' ? 'selected' : '' }}>2nd Semester</option>
-                        </select>
-                    </div>
-                </div>
+                <fieldset @disabled($readonly)>
 
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <label class="form-label">Home Address</label>
-                        <input type="text" name="address" class="form-control" placeholder="Enter full address" value="{{ old('address') }}">
+                    {{-- Name row --}}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" name="last_name" class="form-control @error('last_name') is-invalid @enderror"
+                                   placeholder="Enter last name"
+                                   value="{{ old('last_name', $form?->last_name) }}">
+                            @error('last_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">First Name</label>
+                            <input type="text" name="first_name" class="form-control @error('first_name') is-invalid @enderror"
+                                   placeholder="Enter first name"
+                                   value="{{ old('first_name', $form?->first_name) }}">
+                            @error('first_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Middle Name</label>
+                            <input type="text" name="middle_name" class="form-control"
+                                   placeholder="Enter middle name"
+                                   value="{{ old('middle_name', $form?->middle_name) }}">
+                        </div>
                     </div>
-                </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" placeholder="Enter email address" value="{{ old('email') }}">
+                    {{-- Birthdate / Sex / Applicant Type --}}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Birthdate</label>
+                            <input type="date" name="birthdate" class="form-control @error('birthdate') is-invalid @enderror"
+                                   value="{{ old('birthdate', $form?->birthdate) }}">
+                            @error('birthdate')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Sex</label>
+                            <select class="form-select @error('sex') is-invalid @enderror" name="sex">
+                                <option selected disabled>Select...</option>
+                                <option value="male"   {{ old('sex', $form?->sex) == 'male'   ? 'selected' : '' }}>Male</option>
+                                <option value="female" {{ old('sex', $form?->sex) == 'female' ? 'selected' : '' }}>Female</option>
+                            </select>
+                            @error('sex')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Applicant Type</label>
+                            <select class="form-select @error('applicant_type') is-invalid @enderror" name="applicant_type">
+                                <option selected disabled>Select...</option>
+                                <option value="new"        {{ old('applicant_type', $form?->applicant_type) == 'new'        ? 'selected' : '' }}>New</option>
+                                <option value="old"        {{ old('applicant_type', $form?->applicant_type) == 'old'        ? 'selected' : '' }}>Old</option>
+                                <option value="transferee" {{ old('applicant_type', $form?->applicant_type) == 'transferee' ? 'selected' : '' }}>Transferee</option>
+                            </select>
+                            @error('applicant_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Contact Number</label>
-                        <input type="text" name="contact_number" class="form-control" placeholder="Enter contact number" value="{{ old('contact_number') }}">
-                    </div>
-                </div>
 
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label">Emergency Contact</label>
-                        <input type="text" name="emergency_contact" class="form-control" placeholder="Name and Number" value="{{ old('emergency_contact') }}">
+                    {{-- Program / Year Level / Semester --}}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Program</label>
+                            <select class="form-select @error('program') is-invalid @enderror" name="program">
+                                <option selected disabled>Select...</option>
+                                <option value="bsit" {{ old('program', $form?->program) == 'bsit' ? 'selected' : '' }}>BS Information Technology</option>
+                                <option value="bscs" {{ old('program', $form?->program) == 'bscs' ? 'selected' : '' }}>BS Computer Science</option>
+                            </select>
+                            @error('program')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Year Level</label>
+                            <select class="form-select @error('year_level') is-invalid @enderror" name="year_level">
+                                <option selected disabled>Select...</option>
+                                @foreach([1,2,3,4] as $yr)
+                                    <option value="{{ $yr }}" {{ old('year_level', $form?->year_level) == $yr ? 'selected' : '' }}>
+                                        {{ $yr }}{{ match($yr) { 1 => 'st', 2 => 'nd', 3 => 'rd', default => 'th' } }} Year
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('year_level')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Semester</label>
+                            <select class="form-select @error('semester') is-invalid @enderror" name="semester">
+                                <option selected disabled>Select...</option>
+                                <option value="1" {{ old('semester', $form?->semester) == '1' ? 'selected' : '' }}>1st Semester</option>
+                                <option value="2" {{ old('semester', $form?->semester) == '2' ? 'selected' : '' }}>2nd Semester</option>
+                            </select>
+                            @error('semester')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Last School Attended</label>
-                        <input type="text" name="last_school" class="form-control" placeholder="Enter school name" value="{{ old('last_school') }}">
-                    </div>
-                </div>
 
-                <div class="mb-4">
-                    <label class="form-label">Upload Documents (Transcripts of records, etc.)</label>
-                    <div class="border border-dashed p-4 text-center bg-light rounded">
-                        <p class="text-muted mb-0">Drag file or browse</p>
-                        <input class="form-control mt-2" type="file" name="documents[]" multiple>
+                    {{-- Address --}}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Home Address</label>
+                            <input type="text" name="address" class="form-control @error('address') is-invalid @enderror"
+                                   placeholder="Enter full address"
+                                   value="{{ old('address', $form?->address) }}">
+                            @error('address')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                     </div>
-                </div>
 
+                    {{-- Email / Contact --}}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                                   placeholder="Enter email address"
+                                   value="{{ old('email', $form ? auth()->user()->email : '') }}">
+                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Contact Number</label>
+                            <input type="text" name="contact_number" class="form-control @error('contact_number') is-invalid @enderror"
+                                   placeholder="Enter contact number"
+                                   value="{{ old('contact_number', $form?->contact_number) }}">
+                            @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+
+                    {{-- Emergency Contact / Last School --}}
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Emergency Contact</label>
+                            <input type="text" name="emergency_contact" class="form-control @error('emergency_contact') is-invalid @enderror"
+                                   placeholder="Name and Number"
+                                   value="{{ old('emergency_contact', $form?->emergency_contact) }}">
+                            @error('emergency_contact')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last School Attended</label>
+                            <input type="text" name="last_school" class="form-control @error('last_school') is-invalid @enderror"
+                                   placeholder="Enter school name"
+                                   value="{{ old('last_school', $form?->last_school) }}">
+                            @error('last_school')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+
+                    {{-- Documents upload --}}
+                    @unless($readonly)
+                    <div class="mb-4">
+                        <label class="form-label">Upload Documents (Transcripts of records, etc.)</label>
+                        <div class="border border-dashed p-4 text-center bg-light rounded">
+                            <p class="text-muted mb-0">Drag file or browse</p>
+                            <input class="form-control mt-2" type="file" name="documents[]" multiple>
+                        </div>
+                    </div>
+                    @endunless
+
+                </fieldset>
+
+                {{-- Action buttons — hidden if form is approved --}}
+                @unless($readonly)
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-outline-secondary px-4">Save Draft</button>
-                    <button type="submit" class="btn btn-maroon px-4">Submit Enrollment</button>
+                    <button type="submit"
+                            formaction="{{ route('student.forms.draft') }}"
+                            class="btn btn-outline-secondary px-4">
+                        Save Draft
+                    </button>
+                    <button type="submit" class="btn btn-maroon px-4">
+                        Submit Enrollment
+                    </button>
                 </div>
+                @endunless
+
             </form>
         </div>
     </div>
 </div>
+
 @endif
 @endsection
