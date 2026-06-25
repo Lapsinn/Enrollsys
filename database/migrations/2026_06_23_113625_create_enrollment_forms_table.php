@@ -27,10 +27,6 @@ public function up(): void
         $table->string('last_school');
         $table->string('status')->default('pending'); // Useful for approval workflow
         $table->timestamps();
-        $table->id();
-        $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Link to users
-        $table->string('status')->default('pending'); // 'pending', 'approved', 'rejected'
-        $table->timestamps();
     });
 }
 };
