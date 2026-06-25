@@ -40,12 +40,21 @@ class ApprovalController extends Controller
 
     public function approve(User $student): RedirectResponse
     {
-    // Ensure you are updating the correct related model
-    $student->enrollmentForm->update(['status' => 'approved']);
+        $form = $student->enrollmentForm;
+        $form->update(['status' => 'approved']);
 
-    return redirect()
-        ->route('admin.approval.index')
-        ->with('status', "{$student->name}'s application was approved.");
+        // Create or update the Enrollment record for the student
+        \App\Models\Enrollment::updateOrCreate(
+            ['email' => $student->email],
+            [
+                'student_name' => $student->name,
+                'course' => $form->program,
+            ]
+        );
+
+        return redirect()
+            ->route('admin.approval.index')
+            ->with('status', "{$student->name}'s application was approved.");
     }
 
     public function reject(User $student): RedirectResponse

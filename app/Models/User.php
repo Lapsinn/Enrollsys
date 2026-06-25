@@ -33,12 +33,17 @@ class User extends Authenticatable
 
     public function enrollmentForm()
     {
-    return $this->hasOne(EnrollmentForm::class);
+        return $this->hasOne(EnrollmentForm::class);
     }
     
     public function notes()
     {
-    return $this->hasMany(Note::class, 'user_id');
+        return $this->hasMany(Note::class, 'user_id');
+    }
+
+    public function enrollment()
+    {
+        return $this->hasOne(Enrollment::class, 'email', 'email');
     }
 
 }
