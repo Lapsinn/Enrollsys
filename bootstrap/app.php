@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 
 use App\Http\Middleware\EnsureUserIsStudent;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureEnrollmentFormFilled;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'student' => EnsureUserIsStudent::class,
             'admin' => EnsureUserIsAdmin::class,
+            'form_filled' => EnsureEnrollmentFormFilled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

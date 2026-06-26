@@ -45,16 +45,18 @@ Route::middleware(['auth', 'student'])->group(function () {
     Route::post('/forms', [StudentEnrollmentFormController::class, 'store'])->name('student.forms.store');
     Route::post('/forms/draft', [StudentEnrollmentFormController::class, 'saveDraft'])->name('student.forms.draft');
 
-    Route::get('/records', [StudentRecordsController::class, 'show'])->name('student.records.show');
-    Route::post('/records', [StudentRecordsController::class, 'upload'])->name('student.records.upload');
+    Route::middleware(['form_filled'])->group(function () {
+        Route::get('/records', [StudentRecordsController::class, 'show'])->name('student.records.show');
+        Route::post('/records', [StudentRecordsController::class, 'upload'])->name('student.records.upload');
 
-    // "Approval Queue" renamed to "Enrollment Status" for students
-    Route::get('/status', [StudentEnrollmentStatusController::class, 'show'])->name('student.status.show');
+        // "Approval Queue" renamed to "Enrollment Status" for students
+        Route::get('/status', [StudentEnrollmentStatusController::class, 'show'])->name('student.status.show');
 
-    Route::get('/block', [StudentBlockAssignmentController::class, 'show'])->name('student.block.show');
+        Route::get('/block', [StudentBlockAssignmentController::class, 'show'])->name('student.block.show');
 
-    Route::get('/subjects', [StudentSubjectEnrollmentController::class, 'show'])->name('student.subjects.show');
-    Route::post('/subjects', [StudentSubjectEnrollmentController::class, 'store'])->name('student.subjects.store');
+        Route::get('/subjects', [StudentSubjectEnrollmentController::class, 'show'])->name('student.subjects.show');
+        Route::post('/subjects', [StudentSubjectEnrollmentController::class, 'store'])->name('student.subjects.store');
+    });
 });
 
 /*

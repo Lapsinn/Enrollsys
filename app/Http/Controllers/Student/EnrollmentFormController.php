@@ -87,13 +87,23 @@ class EnrollmentFormController extends Controller
                 ->withErrors(['form' => 'Your enrollment form has already been approved and cannot be updated.']);
         }
 
-        $data = $request->except(['_token']);
+        // Validate basic formatting for email and birthdate if they are provided
+        $request->validate([
+            'email' => ['nullable', 'email'],
+            'birthdate' => ['nullable', 'date'],
+        ]);
+
+        $data = $request->except(['_token', 'email']);
         $data['status'] = 'draft';
 
         auth()->user()->enrollmentForm()->updateOrCreate(
             ['user_id' => auth()->id()],
             $data
         );
+
+        if ($request->filled('email')) {
+            auth()->user()->update(['email' => $request->input('email')]);
+        }
 
         return redirect()
             ->route('student.forms.show')
