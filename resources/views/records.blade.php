@@ -70,9 +70,8 @@
         <div class="col-md-7">
             @php
                 $selectedId = request('student_id') ?: ($students->first()?->id ?? null);
-                $selectedStudent = $selectedId ? \App\Models\User::with(['enrollmentForm.subjects', 'enrollment.block'])->find($selectedId) : null;
+                $selectedStudent = $selectedId ? \App\Models\User::with(['enrollmentForm'])->find($selectedId) : null;
                 $selectedForm = $selectedStudent?->enrollmentForm;
-                $subjects = $selectedForm?->subjects ?? collect();
             @endphp
 
             @if($selectedStudent)
@@ -88,54 +87,29 @@
                     </div>
                 </div>
 
-                <div class="row mb-4 text-center">
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm bg-light py-3">
-                            <h6 class="text-muted mb-1">Units loaded</h6>
-                            <h3 class="mb-0 text-maroon">{{ $subjects->sum('units') }}</h3>
+                <div class="card shadow-sm border-0 p-4">
+                    <h5 class="text-maroon mb-3">Academic Record Document</h5>
+                    
+                    @if($selectedForm && $selectedForm->record_file)
+                        <div class="alert alert-success d-flex align-items-center gap-2 mb-4">
+                            <i class="bi bi-check-circle-fill fs-5"></i>
+                            <div>
+                                A record file is available for this student.
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm bg-light py-3">
-                            <h6 class="text-muted mb-1">GPA / GWA</h6>
-                            <h3 class="mb-0 text-maroon">1.50</h3>
+                        <div>
+                            <a href="{{ route('records.download', $selectedStudent) }}" class="btn btn-maroon px-4">
+                                <i class="bi bi-download"></i> View / Download Record File
+                            </a>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm bg-light py-3">
-                            <h6 class="text-muted mb-1">Status</h6>
-                            <h3 class="mb-0 text-success">Regular</h3>
+                    @else
+                        <div class="alert alert-warning d-flex align-items-center gap-2 mb-0">
+                            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            <div>
+                                No record file has been uploaded for this student yet.
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm border-0">
-                    <div class="card-body p-0">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="py-3 px-4">Subject</th>
-                                    <th class="py-3">Code</th>
-                                    <th class="py-3">Units</th>
-                                    <th class="py-3">Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($subjects as $subj)
-                                    <tr>
-                                        <td class="px-4 fw-semibold text-dark">{{ $subj->name }}</td>
-                                        <td><span class="text-maroon fw-semibold">{{ $subj->code }}</span></td>
-                                        <td>{{ $subj->units }}</td>
-                                        <td><span class="text-success fw-semibold">1.50</span></td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted py-4">No enrolled subjects found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    @endif
                 </div>
             @else
                 <div class="card shadow-sm p-4 text-center text-muted my-5">
@@ -148,8 +122,7 @@
     @else
     {{-- STUDENT VIEW --}}
     @php
-        $form = auth()->user()->enrollmentForm;
-        $subjects = $form?->subjects ?? collect();
+        $student = auth()->user();
     @endphp
 
     <div class="card shadow-sm border-0 mb-4">
@@ -158,60 +131,70 @@
                 <i class="bi bi-person fs-5 text-muted"></i>
             </div>
             <div>
-                <h5 class="mb-0 text-maroon">{{ auth()->user()->name }}</h5>
-                <span class="text-muted small">Student No. {{ auth()->user()->student_number ?? '—' }}</span>
+                <h5 class="mb-0 text-maroon">{{ $student->name }}</h5>
+                <span class="text-muted small">Student No. {{ $student->student_number ?? '—' }}</span>
             </div>
         </div>
     </div>
 
-    <div class="row mb-4 text-center">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-light py-3">
-                <h6 class="text-muted mb-1">Units this semester</h6>
-                <h3 class="mb-0 text-maroon">{{ $subjects->sum('units') }}</h3>
-            </div>
+    @if(session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-light py-3">
-                <h6 class="text-muted mb-1">GWA</h6>
-                <h3 class="mb-0 text-maroon">1.50</h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-light py-3">
-                <h6 class="text-muted mb-1">Status</h6>
-                <h3 class="mb-0 text-success">Regular</h3>
-            </div>
-        </div>
-    </div>
+    @endif
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="py-3 px-4">Subject</th>
-                        <th class="py-3">Code</th>
-                        <th class="py-3">Units</th>
-                        <th class="py-3">Grade</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($subjects as $subj)
-                        <tr>
-                            <td class="px-4 fw-semibold text-dark">{{ $subj->name }}</td>
-                            <td><span class="text-maroon fw-semibold">{{ $subj->code }}</span></td>
-                            <td>{{ $subj->units }}</td>
-                            <td><span class="text-success fw-semibold">1.50</span></td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-4">You have not enrolled in any subjects yet.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+    @endif
+
+    <div class="card shadow-sm p-4">
+        <h4 class="text-maroon mb-4">Upload / Update Academic Record</h4>
+        
+        @if(!$student->enrollmentForm)
+            <div class="alert alert-warning mb-0">
+                <i class="bi bi-exclamation-triangle-fill"></i> Please start your <a href="{{ route('student.form.show') }}" class="alert-link">Enrollment Form</a> draft first before uploading academic records.
+            </div>
+        @else
+            @if($student->enrollmentForm->record_file)
+                <div class="alert alert-success d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                        <div>
+                            <strong>Academic Record Document is available.</strong>
+                        </div>
+                    </div>
+                    <a href="{{ route('records.download', $student) }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-download"></i> Download Current File
+                    </a>
+                </div>
+            @else
+                <div class="alert alert-warning mb-4">
+                    <i class="bi bi-exclamation-triangle-fill"></i> No record file has been uploaded yet. Please upload your document below.
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('student.records.upload') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-3">
+                    <label for="recordFile" class="form-label fw-semibold">Select Document File</label>
+                    <input type="file" name="record_file" id="recordFile" class="form-control" required>
+                    <div class="form-text text-muted">
+                        Accepted formats: PDF, Word (doc/docx), or images (jpg/png). Max size: 10MB.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-maroon px-4">
+                    <i class="bi bi-upload"></i> {{ $student->enrollmentForm->record_file ? 'Replace File' : 'Upload File' }}
+                </button>
+            </form>
+        @endif
     </div>
     @endif
 </div>

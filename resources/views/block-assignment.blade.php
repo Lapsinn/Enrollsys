@@ -13,6 +13,18 @@
         </div>
     @endif
 
+    {{-- Validation errors --}}
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @if(auth()->user()->role === 'admin')
     {{-- Search & Filters Form --}}
     <form method="GET" action="{{ route('admin.block-assignment.index') }}" class="row mb-3 g-2 align-items-center">
@@ -108,9 +120,15 @@
                                 <form method="POST" action="{{ route('admin.block-assignment.update', $student) }}" class="d-inline" id="updateForm-{{ $student->id }}">
                                     @csrf
                                     @method('PATCH')
+                                    @php
+                                        $studentYear = $student->enrollmentForm?->year_level;
+                                        $filteredBlocks = $studentYear 
+                                            ? $blocks->filter(fn($b) => str_starts_with($b->name, "{$studentYear}-")) 
+                                            : $blocks;
+                                    @endphp
                                     <select name="block_id" class="form-select form-select-sm" style="max-width: 200px;">
                                         <option value="">Unassigned</option>
-                                        @foreach($blocks as $b)
+                                        @foreach($filteredBlocks as $b)
                                             <option value="{{ $b->id }}" {{ $student->enrollment?->block_id == $b->id ? 'selected' : '' }}>
                                                 {{ $b->name }}
                                             </option>

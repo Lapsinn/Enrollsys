@@ -12,6 +12,18 @@
         </div>
     @endif
 
+    {{-- Validation errors --}}
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @if(auth()->user()->role === 'admin')
     {{-- ADMIN VIEW --}}
     <form method="GET" action="{{ route('admin.subjects.index') }}" class="row mb-4 g-2 align-items-center">
@@ -114,11 +126,31 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="fw-bold mb-0">Enrolled Subjects</h6>
-                        <span class="badge bg-maroon fs-6 px-3 py-2">
-                            Total Units: {{ $enrolledSubjects->sum('units') }}
-                        </span>
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h6 class="fw-bold mb-0">
+                            Enrolled Subjects 
+                            <span class="badge bg-{{ $selectedForm?->subjects_status === 'approved' ? 'success' : 'warning text-dark' }} ms-2" style="font-size:0.8rem;">
+                                {{ $selectedForm?->subjects_status === 'approved' ? 'Approved & Locked' : 'Pending Review' }}
+                            </span>
+                        </h6>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-maroon fs-6 px-3 py-2">
+                                Total Units: {{ $enrolledSubjects->sum('units') }}
+                            </span>
+                            @if($selectedForm)
+                                @if($selectedForm->subjects_status !== 'approved')
+                                    <form method="POST" action="{{ route('admin.subjects.approve', $selectedStudent) }}" class="mb-0">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-circle"></i> Approve Subjects</button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="{{ route('admin.subjects.unlock', $selectedStudent) }}" class="mb-0">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-warning"><i class="bi bi-unlock"></i> Unlock Subjects</button>
+                                    </form>
+                                @endif
+                            @endif
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -192,25 +224,54 @@
             Please submit your <a href="{{ route('student.forms.show') }}" class="alert-link">Enrollment Form</a> first to select and enroll in subjects.
         </div>
     @else
-        <form method="POST" action="{{ route('student.subjects.store') }}">
+        <form method="POST" action="{{ route('student.subjects.store') }}" x-data="{ 
+            search: '', 
+            matchesSearch(code, name) {
+                if (!this.search) return true;
+                const q = this.search.toLowerCase();
+                return code.toLowerCase().includes(q) || name.toLowerCase().includes(q);
+            }
+        }">
             @csrf
-            <h5 class="mb-3 text-maroon">Select Subjects to Enroll</h5>
-            <div class="d-flex flex-column gap-2 mb-4">
-                @foreach($subjects as $subj)
-                    @php $isEnrolled = in_array($subj->id, $enrolledSubjectIds); @endphp
-                    <div class="card shadow-sm p-3 border-start border-maroon border-3">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="d-flex align-items-center gap-3">
-                                <input type="checkbox" name="subjects[]" value="{{ $subj->id }}" class="form-check-input" {{ $isEnrolled ? 'checked' : '' }}>
-                                <div>
-                                    <div class="fw-semibold text-dark">{{ $subj->code }} - {{ $subj->name }}</div>
-                                    <span class="text-muted small">{{ $subj->units }} units</span>
+            
+            @if($readonly)
+                <div class="alert alert-success d-flex align-items-center gap-2 mb-4">
+                    <i class="bi bi-check-circle-fill fs-5"></i>
+                    <div>
+                        Your subject enrollment has been approved by the admin and is locked. No further changes can be made.
+                    </div>
+                </div>
+            @endif
+
+            <fieldset @disabled($readonly)>
+                <h5 class="mb-3 text-maroon">Select Subjects to Enroll</h5>
+
+                {{-- Search Bar --}}
+                <div class="card p-3 mb-3 bg-light border-0 shadow-sm">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" x-model="search" class="form-control border-start-0 ps-0" placeholder="Search by subject code or title..." required>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column gap-2 mb-4">
+                    @foreach($subjects as $subj)
+                        @php $isEnrolled = in_array($subj->id, $enrolledSubjectIds); @endphp
+                        <div class="card shadow-sm p-3 border-start border-maroon border-3"
+                             x-show="matchesSearch('{{ addslashes($subj->code) }}', '{{ addslashes($subj->name) }}')">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-3">
+                                    <input type="checkbox" name="subjects[]" value="{{ $subj->id }}" class="form-check-input" {{ $isEnrolled ? 'checked' : '' }}>
+                                    <div>
+                                        <div class="fw-semibold text-dark">{{ $subj->code }} - {{ $subj->name }}</div>
+                                        <span class="text-muted small">{{ $subj->units }} units</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            </fieldset>
 
             <h5 class="text-maroon mb-3">Enrolled Class Schedule Preview</h5>
             <div class="card shadow-sm mb-4">
@@ -245,7 +306,9 @@
 
             <div class="text-end mb-5">
                 <a href="{{ route('welcome') }}" class="btn btn-secondary me-2">Cancel</a>
-                <button type="submit" class="btn btn-maroon">Enroll Subjects</button>
+                @unless($readonly)
+                    <button type="submit" class="btn btn-maroon">Enroll Subjects</button>
+                @endunless
             </div>
         </form>
     @endif

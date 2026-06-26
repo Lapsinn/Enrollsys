@@ -138,8 +138,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <form method="POST" action="{{ route('student.forms.store') }}"
-                  enctype="multipart/form-data">
+            <form method="POST" action="{{ route('student.forms.store') }}">
                 @csrf
 
                 {{-- Validation errors --}}
@@ -289,16 +288,6 @@
                         </div>
                     </div>
 
-                    {{-- Documents upload --}}
-                    @unless($readonly)
-                    <div class="mb-4">
-                        <label class="form-label">Upload Documents (Transcripts of records, etc.)</label>
-                        <div class="border border-dashed p-4 text-center bg-light rounded">
-                            <p class="text-muted mb-0">Drag file or browse</p>
-                            <input class="form-control mt-2" type="file" name="documents[]" multiple>
-                        </div>
-                    </div>
-                    @endunless
 
                 </fieldset>
 

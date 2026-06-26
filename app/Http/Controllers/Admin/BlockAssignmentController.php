@@ -67,6 +67,16 @@ class BlockAssignmentController extends Controller
             'block_id' => ['nullable', 'exists:blocks,id'],
         ]);
 
+        if ($validated['block_id'] && $student->enrollmentForm?->year_level) {
+            $block = Block::find($validated['block_id']);
+            $year = $student->enrollmentForm->year_level;
+            if (!str_starts_with($block->name, "{$year}-")) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['block_id' => "Selected block '{$block->name}' does not match student's Year Level ({$year})."]);
+            }
+        }
+
         $enrollment = Enrollment::updateOrCreate(
             ['email' => $student->email],
             [
@@ -92,6 +102,20 @@ class BlockAssignmentController extends Controller
         ]);
 
         $students = User::whereIn('id', $validated['student_ids'])->get();
+
+        if ($validated['block_id']) {
+            $block = Block::find($validated['block_id']);
+            foreach ($students as $student) {
+                if ($student->enrollmentForm?->year_level) {
+                    $year = $student->enrollmentForm->year_level;
+                    if (!str_starts_with($block->name, "{$year}-")) {
+                        return redirect()
+                            ->back()
+                            ->withErrors(['block_id' => "Cannot assign student '{$student->name}' (Year {$year}) to block '{$block->name}'."]);
+                    }
+                }
+            }
+        }
 
         foreach ($students as $student) {
             Enrollment::updateOrCreate(

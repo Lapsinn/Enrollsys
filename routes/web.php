@@ -26,9 +26,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'login'])->name('login.attempt');
 });
 
-Route::post('/logout', [LoginController::class, 'logout'])
-    ->middleware('auth')
-    ->name('logout');
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::get('/records/download/{user}', [StudentRecordsController::class, 'download'])->name('records.download');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'student'])->group(function () {
     Route::post('/forms/draft', [StudentEnrollmentFormController::class, 'saveDraft'])->name('student.forms.draft');
 
     Route::get('/records', [StudentRecordsController::class, 'show'])->name('student.records.show');
+    Route::post('/records', [StudentRecordsController::class, 'upload'])->name('student.records.upload');
 
     // "Approval Queue" renamed to "Enrollment Status" for students
     Route::get('/status', [StudentEnrollmentStatusController::class, 'show'])->name('student.status.show');
@@ -83,4 +85,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 
     // Subject Enrollment overview: search
     Route::get('/subjects', [AdminSubjectEnrollmentController::class, 'index'])->name('admin.subjects.index');
+    Route::post('/subjects/{student}/approve', [AdminSubjectEnrollmentController::class, 'approve'])->name('admin.subjects.approve');
+    Route::post('/subjects/{student}/unlock', [AdminSubjectEnrollmentController::class, 'unlock'])->name('admin.subjects.unlock');
 });

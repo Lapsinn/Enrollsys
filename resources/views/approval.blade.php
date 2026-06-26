@@ -2,7 +2,7 @@
 
 @section('content')
 @if(auth()->user()->role === 'admin')
-<div class="container mt-5" x-data="{ noteModalOpen: false, noteText: '', noteTargetName: '', closeModal() { this.noteText = ''; this.noteModalOpen = false; } }">
+<div class="container mt-5" x-data="{ noteModalOpen: false, noteText: '', noteStudentId: '', noteStudentName: '', closeModal() { this.noteText = ''; this.noteModalOpen = false; } }">
     <h2 class="page-title">Approval Queue</h2>
 
     {{-- Flash status message --}}
@@ -68,14 +68,22 @@
                                     </div>
                                 </div>
                             </div>
-                            <span class="badge bg-{{ match($form?->status) {
-                                'approved' => 'success',
-                                'rejected' => 'danger',
-                                'pending'  => 'warning text-dark',
-                                default    => 'secondary',
-                            } }}">
-                                {{ $form ? ucfirst($form->status) : 'N/A' }}
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-{{ match($form?->status) {
+                                    'approved' => 'success',
+                                    'rejected' => 'danger',
+                                    'pending'  => 'warning text-dark',
+                                    default    => 'secondary',
+                                } }}">
+                                    {{ $form ? ucfirst($form->status) : 'N/A' }}
+                                </span>
+                                <span class="btn btn-sm btn-outline-{{ $isSelected ? 'light' : 'secondary' }} p-1 py-0"
+                                      role="button"
+                                      title="Add Note"
+                                      @click.stop.prevent="noteStudentId = '{{ $student->id }}'; noteStudentName = '{{ $student->name }}'; noteModalOpen = true;">
+                                    <i class="bi bi-chat-left-text"></i>
+                                </span>
+                            </div>
                         </a>
                     @empty
                         <div class="text-center text-muted py-4">No students found in approval queue.</div>
@@ -161,7 +169,7 @@
                         @endif
 
                         <button class="btn btn-outline-maroon ms-auto" 
-                                @click="document.getElementById('noteStudentSelect').value = '{{ $selectedStudent->id }}'; noteModalOpen = true;">
+                                @click="noteStudentId = '{{ $selectedStudent->id }}'; noteStudentName = '{{ $selectedStudent->name }}'; noteModalOpen = true;">
                             <i class="bi bi-pencil-square"></i> Add Note
                         </button>
                     </div>
@@ -195,20 +203,14 @@
     </div>
 
     <!-- Add Note Modal -->
-    <div x-show="noteModalOpen" x-cloak class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background:rgba(0,0,0,.5); z-index:1050;" @click.self="closeModal()">
+    <div x-show="noteModalOpen" x-cloak class="position-fixed top-0 start-0 w-100 h-100 align-items-center justify-content-center" :class="noteModalOpen ? 'd-flex' : ''" style="display: none; background:rgba(0,0,0,.5); z-index:1050;" @click.self="closeModal()">
         <div class="card shadow-lg p-4" style="width:480px;">
             <h5 class="text-maroon mb-3">Add Note</h5>
             <form id="noteForm" method="POST" action="{{ route('admin.approval.note') }}">
                 @csrf
+                <input type="hidden" name="student_id" :value="noteStudentId">
                 <div class="mb-3">
-                    <label for="noteStudentSelect" class="form-label text-muted small fw-semibold">For Student</label>
-                    <select id="noteStudentSelect" name="student_id" class="form-select">
-                        @foreach($applications as $app)
-                            <option value="{{ $app->id }}" {{ $selectedStudent && $selectedStudent->id == $app->id ? 'selected' : '' }}>
-                                {{ $app->name }} ({{ $app->student_number ?? 'No Student No.' }})
-                            </option>
-                        @endforeach
-                    </select>
+                    <label class="form-label text-muted small fw-semibold">For <span class="fw-bold text-dark fs-5" x-text="noteStudentName"></span></label>
                 </div>
                 <div class="mb-3">
                     <label for="noteText" class="form-label text-muted small fw-semibold">Note / Feedback</label>

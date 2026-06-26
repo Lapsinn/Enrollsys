@@ -26,16 +26,18 @@ use Illuminate\Support\Facades\Route;
 // A fake user object — NOT a real database record.
 // We build it on the fly just so auth()->user()->role works
 // inside the blade files.
-function previewUser(string $role): \App\Models\User
-{
-    $user = new \App\Models\User();
-    $user->id = 0;
-    $user->name = $role === 'admin' ? 'Preview Admin' : 'Preview Student';
-    $user->email = 'preview@example.com';
-    $user->role = $role;
-    $user->student_number = $role === 'student' ? '2026-00000' : null;
+if (!function_exists('previewUser')) {
+    function previewUser(string $role): \App\Models\User
+    {
+        $user = new \App\Models\User();
+        $user->id = 0;
+        $user->name = $role === 'admin' ? 'Preview Admin' : 'Preview Student';
+        $user->email = 'preview@example.com';
+        $user->role = $role;
+        $user->student_number = $role === 'student' ? '2026-00000' : null;
 
-    return $user;
+        return $user;
+    }
 }
 
 Route::prefix('preview')->group(function () {

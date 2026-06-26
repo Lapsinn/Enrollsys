@@ -29,6 +29,13 @@ class EnrollmentFormController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $form = auth()->user()->enrollmentForm;
+        if ($form && $form->status === 'approved') {
+            return redirect()
+                ->route('student.forms.show')
+                ->withErrors(['form' => 'Your enrollment form has already been approved and cannot be updated.']);
+        }
+
         $validated = $request->validate([
             'last_name'         => ['required', 'string', 'max:255'],
             'first_name'        => ['required', 'string', 'max:255'],
@@ -44,8 +51,6 @@ class EnrollmentFormController extends Controller
             'contact_number'    => ['required', 'string'],
             'emergency_contact' => ['required', 'string'],
             'last_school'       => ['required', 'string'],
-            'documents'         => ['nullable', 'array'],
-            'documents.*'       => ['file', 'mimes:pdf,jpg,png', 'max:5120'],
         ]);
 
         // Remove 'email' from $validated before saving to enrollment_forms
@@ -65,11 +70,6 @@ class EnrollmentFormController extends Controller
         // Optionally sync the email back to the user record
         auth()->user()->update(['email' => $email]);
 
-        // TODO: handle file uploads if needed
-        // foreach ($request->file('documents', []) as $file) {
-        //     $path = $file->store('documents/' . auth()->id(), 'public');
-        // }
-
         return redirect()
             ->route('student.forms.show')
             ->with('status', 'Enrollment submitted successfully.');
@@ -80,7 +80,14 @@ class EnrollmentFormController extends Controller
      */
     public function saveDraft(Request $request): RedirectResponse
     {
-        $data = $request->except(['_token', 'documents']);
+        $form = auth()->user()->enrollmentForm;
+        if ($form && $form->status === 'approved') {
+            return redirect()
+                ->route('student.forms.show')
+                ->withErrors(['form' => 'Your enrollment form has already been approved and cannot be updated.']);
+        }
+
+        $data = $request->except(['_token']);
         $data['status'] = 'draft';
 
         auth()->user()->enrollmentForm()->updateOrCreate(

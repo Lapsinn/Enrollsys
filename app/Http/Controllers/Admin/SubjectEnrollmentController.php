@@ -63,4 +63,36 @@ class SubjectEnrollmentController extends Controller
             'yearLevel' => $yearLevel,
         ]);
     }
+
+    public function approve(User $student): \Illuminate\Http\RedirectResponse
+    {
+        $form = $student->enrollmentForm;
+        if (!$form) {
+            return redirect()
+                ->back()
+                ->withErrors(['form' => 'This student does not have an enrollment form.']);
+        }
+
+        $form->update(['subjects_status' => 'approved']);
+
+        return redirect()
+            ->back()
+            ->with('status', "{$student->name}'s subject enrollment has been approved and locked.");
+    }
+
+    public function unlock(User $student): \Illuminate\Http\RedirectResponse
+    {
+        $form = $student->enrollmentForm;
+        if (!$form) {
+            return redirect()
+                ->back()
+                ->withErrors(['form' => 'This student does not have an enrollment form.']);
+        }
+
+        $form->update(['subjects_status' => 'pending']);
+
+        return redirect()
+            ->back()
+            ->with('status', "{$student->name}'s subject enrollment has been unlocked.");
+    }
 }

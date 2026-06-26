@@ -14,26 +14,34 @@ class SubjectEnrollmentController extends Controller
     {
         $subjects = Subject::all();
         $enrolledSubjectIds = auth()->user()->enrollmentForm?->subjects()->pluck('subjects.id')->toArray() ?? [];
+        $readonly = auth()->user()->enrollmentForm?->subjects_status === 'approved';
 
         return view('subject-enrollment', [
             'subjects' => $subjects,
             'enrolledSubjectIds' => $enrolledSubjectIds,
+            'readonly' => $readonly,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'subjects' => ['nullable', 'array'],
-            'subjects.*' => ['exists:subjects,id'],
-        ]);
-
         $form = auth()->user()->enrollmentForm;
         if (!$form) {
             return redirect()
                 ->route('student.forms.show')
                 ->with('status', 'Please submit your enrollment form first.');
         }
+
+        if ($form->subjects_status === 'approved') {
+            return redirect()
+                ->route('student.subjects.show')
+                ->withErrors(['subjects' => 'Your subject enrollment has already been approved and cannot be updated.']);
+        }
+
+        $validated = $request->validate([
+            'subjects' => ['nullable', 'array'],
+            'subjects.*' => ['exists:subjects,id'],
+        ]);
 
         $form->subjects()->sync($request->input('subjects', []));
 

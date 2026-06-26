@@ -24,6 +24,8 @@ class EnrollmentForm extends Model
         'emergency_contact',
         'last_school',
         'status',
+        'subjects_status',
+        'record_file',
     ];
 
     public function user(): BelongsTo
